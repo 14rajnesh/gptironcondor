@@ -1,4 +1,8 @@
-fyers-apiv3
-requests
+smartapi-python
+pyotp
 pandas
-streamlit
+requests
+pytz
+logzero
+websocket-client
+pycryptodome
