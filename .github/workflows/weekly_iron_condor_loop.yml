@@ -1,0 +1,90 @@
+name: Weekly Iron Condor Paper Bot
+
+on:
+  workflow_dispatch:
+
+  # Starts around 9:15 AM IST, Monday to Friday
+  schedule:
+    - cron: "45 3 * * 1-5"
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 390
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Show project files
+        run: |
+          ls -la
+          echo "----- Python files -----"
+          find . -maxdepth 2 -name "*.py" -type f
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Restore CSV data cache
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: iron-condor-data-${{ github.run_id }}
+          restore-keys: |
+            iron-condor-data-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create data folder
+        run: mkdir -p data
+
+      - name: Run Angel One Iron Condor Paper Bot
+        env:
+          ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+          ANGEL_CLIENT_CODE: ${{ secrets.ANGEL_CLIENT_CODE }}
+          ANGEL_PIN: ${{ secrets.ANGEL_PIN }}
+          ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+          INITIAL_CAPITAL: "1000000"
+          LOT_SIZE: "75"
+          UNDERLYING: "NIFTY"
+
+          BOT_MODE: "LOOP"
+          LOOP_SLEEP_SECONDS: "60"
+          MARKET_START_TIME: "09:15"
+          MARKET_END_TIME: "15:30"
+
+          MIN_VIX: "10"
+          MAX_VIX: "20"
+
+          SHORT_DELTA_TARGET: "0.15"
+          LONG_DELTA_TARGET: "0.05"
+
+          PROFIT_TARGET_PCT: "0.50"
+          STOP_LOSS_MULTIPLIER: "2.0"
+          NORMAL_DELTA_ADJUST: "0.15"
+          DEGRADED_DELTA_ADJUST: "0.40"
+
+          MIN_VOLUME: "1000"
+          MIN_OI: "10000"
+          MAX_SPREAD_PCT: "30"
+
+          MAX_ADJUSTMENTS_PER_DAY: "2"
+          PAPER_TRADING_ONLY: "true"
+
+        run: python weekly_iron_condor_bot.py
+
+      - name: Upload CSV logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iron-condor-csv-logs
+          path: data/
