@@ -1,38 +1,41 @@
-name: Angel One Weekly Iron Condor Paper Bot
+name: Weekly Iron Condor Paper Bot
 
 on:
   workflow_dispatch:
-  schedule:
-    # 9:20 AM IST, Monday-Friday
-    - cron: "50 3 * * 1-5"
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 390
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Show provider check
+      - name: Show files
+        run: |
+          echo "Repo files:"
+          ls -la
+          echo ""
+          echo "Python files:"
+          find . -maxdepth 2 -name "*.py" -type f
+
+      - name: Check for old FYERS code
         run: |
           echo "Checking for old FYERS code..."
-          ! grep -R "FyersProvider\|FYERS_CLIENT_ID\|FYERS_ACCESS_TOKEN" -n . || exit 1
-          grep -R "AngelProvider\|ANGEL_API_KEY" -n . || true
+          if grep -R "FyersProvider\|FYERS_CLIENT_ID\|FYERS_ACCESS_TOKEN" -n . \
+            --exclude-dir=.git \
+            --exclude-dir=.github; then
+            echo "❌ Old FYERS code found. Delete or replace the listed files."
+            exit 1
+          else
+            echo "✅ No old FYERS code found."
+          fi
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Restore CSV data cache
-        uses: actions/cache@v4
-        with:
-          path: data
-          key: iron-condor-data-${{ github.run_id }}
-          restore-keys: |
-            iron-condor-data-
 
       - name: Install dependencies
         run: |
@@ -42,7 +45,7 @@ jobs:
       - name: Create data folder
         run: mkdir -p data
 
-      - name: Run Angel One paper bot
+      - name: Run Angel One Iron Condor Paper Bot
         env:
           ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
           ANGEL_CLIENT_CODE: ${{ secrets.ANGEL_CLIENT_CODE }}
@@ -52,38 +55,25 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
-          PAPER_TRADING_ONLY: "true"
           INITIAL_CAPITAL: "1000000"
           LOT_SIZE: "75"
-          UNDERLYING: "NIFTY"
-
-          BOT_MODE: "LOOP"
-          LOOP_SLEEP_SECONDS: "60"
-          MARKET_START_TIME: "09:15"
-          MARKET_END_TIME: "15:30"
-
-          ENTRY_MIN_DTE: "2"
-          ENTRY_MAX_DTE: "6"
-          ENABLE_TIME_EXIT: "true"
-          TIME_EXIT_DTE: "3"
+          PAPER_TRADING_ONLY: "true"
 
           MIN_VIX: "10"
           MAX_VIX: "20"
-          DEFAULT_VIX: "15"
 
           SHORT_DELTA_TARGET: "0.15"
           LONG_DELTA_TARGET: "0.05"
 
+          PROFIT_TARGET_PCT: "0.50"
+          STOP_LOSS_MULTIPLIER: "2.0"
+
           MIN_VOLUME: "1000"
           MIN_OI: "10000"
           MAX_SPREAD_PCT: "30"
-          OPTION_CHAIN_STRIKES_EACH_SIDE: "25"
 
-          PROFIT_TARGET_PCT: "0.50"
-          STOP_LOSS_MULTIPLIER: "2.0"
-          NORMAL_DELTA_ADJUST: "0.15"
-          DEGRADED_DELTA_ADJUST: "0.40"
           MAX_ADJUSTMENTS_PER_DAY: "2"
+
         run: python weekly_iron_condor_bot.py
 
       - name: Upload CSV logs
