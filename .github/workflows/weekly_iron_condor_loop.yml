@@ -3,6 +3,16 @@ name: Weekly Iron Condor Paper Bot
 on:
   workflow_dispatch:
 
+  schedule:
+    # 09:45 AM IST = 04:15 UTC
+    - cron: "15 4 * * 1-5"
+
+    # 12:30 PM IST = 07:00 UTC
+    - cron: "00 7 * * 1-5"
+
+    # 02:00 PM IST = 08:30 UTC
+    - cron: "30 8 * * 1-5"
+
 jobs:
   run-bot:
     runs-on: ubuntu-latest
@@ -23,7 +33,7 @@ jobs:
       - name: Check for old FYERS code
         run: |
           echo "Checking for old FYERS code..."
-          if grep -R "FyersProvider\|FYERS_CLIENT_ID\|FYERS_ACCESS_TOKEN" -n . \
+          if grep -R "FyersProvider\|FYERS_CLIENT_ID\|FYERS_ACCESS_TOKEN\|fyersModel" -n . \
             --exclude-dir=.git \
             --exclude-dir=.github; then
             echo "❌ Old FYERS code found. Delete or replace the listed files."
@@ -55,23 +65,34 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
+          PAPER_TRADING_ONLY: "true"
+          BOT_MODE: "ONCE"
+
           INITIAL_CAPITAL: "1000000"
           LOT_SIZE: "75"
-          PAPER_TRADING_ONLY: "true"
+
+          MIN_DTE: "2"
+          MAX_DTE: "6"
 
           MIN_VIX: "10"
-          MAX_VIX: "20"
+          MAX_VIX: "25"
 
           SHORT_DELTA_TARGET: "0.15"
-          LONG_DELTA_TARGET: "0.05"
 
-          PROFIT_TARGET_PCT: "0.50"
-          STOP_LOSS_MULTIPLIER: "2.0"
+          FIXED_WING_WIDTH: "200"
+          MIN_CREDIT_PER_UNIT: "20"
+          MAX_RISK_REWARD: "8"
 
           MIN_VOLUME: "1000"
           MIN_OI: "10000"
           MAX_SPREAD_PCT: "30"
 
+          PROFIT_TARGET_PCT: "0.50"
+          STOP_LOSS_MULTIPLIER: "2.0"
+          TIME_EXIT_DTE: "3"
+
+          NORMAL_DELTA_ADJUST: "0.15"
+          DEGRADED_DELTA_ADJUST: "0.40"
           MAX_ADJUSTMENTS_PER_DAY: "2"
 
         run: python weekly_iron_condor_bot.py
